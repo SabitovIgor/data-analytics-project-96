@@ -1,6 +1,3 @@
-
---ЗАПРОСЫ В ДАШБОРД
-
 --количество пользователей
 select sum(visitors_count) from final_query  
 
@@ -19,19 +16,16 @@ select sum(total_cost) from final_query
 --выручка
 select sum(revenue) from final_query
 
---пользователи по неделям и месяцам
-select  
-	case 
-		when visit_date between '2023-06-01' and '2023-06-04' then '01/06-04/06' 
-		when visit_date between '2023-06-05' and '2023-06-11' then '05/06-11/06' 
-		when visit_date between '2023-06-12' and '2023-06-18' then '12/06-18/06' 
-		when visit_date between '2023-06-19' and '2023-06-25' then '19/06-25/06'  
-		when visit_date between '2023-06-26' and '2023-06-30' then '26/06-30/06'
-	end,
-	utm_source,
-	sum(visitors_count)
-from final_query
-group by 1, 2
+--CPU (CPL, CPPU и ROI меняется только агрегат, CPL - sum(total_cost) * 1.0/ sum(leads_count), CPPU - sum(total_cost) * 1.0/ sum(purchases_count), ROI - (sum(revenue) - sum(total_cost)) * 1.0/ sum(total_cost))
+select round(sum(total_cost)*1.0/sum(visitors_count), 2) from final_query
+
+--CPU source (то же самое с medium и campaign)
+select 
+	utm_source, 
+	round(sum(total_cost)*1.0/sum(visitors_count), 2) as cpu_source 
+from final_query 
+group by 1 
+having round(sum(total_cost)*1.0/sum(visitors_count), 2) is not null
 
 --пользователи по дням
 select 
@@ -48,26 +42,19 @@ from final_query
 group by 1, 2	
 order by 1
 
---затраты на рекламу
-select 
-	visit_date,
+--пользователи по неделям и месяцам
+select  
+	case 
+		when visit_date between '2023-06-01' and '2023-06-04' then '01/06-04/06' 
+		when visit_date between '2023-06-05' and '2023-06-11' then '05/06-11/06' 
+		when visit_date between '2023-06-12' and '2023-06-18' then '12/06-18/06' 
+		when visit_date between '2023-06-19' and '2023-06-25' then '19/06-25/06'  
+		when visit_date between '2023-06-26' and '2023-06-30' then '26/06-30/06'
+	end,
 	utm_source,
-	sum(total_cost)
+	sum(visitors_count)
 from final_query
-where total_cost <> 0
 group by 1, 2
-order by 1
-
---CPU (CPL, CPPU и ROI меняется только агрегат, CPL - sum(total_cost) * 1.0/ sum(leads_count), CPPU - sum(total_cost) * 1.0/ sum(purchases_count), ROI - (sum(revenue) - sum(total_cost)) * 1.0/ sum(total_cost))
-select round(sum(total_cost)*1.0/sum(visitors_count), 2) from final_query
-
---CPU source (то же самое с medium и campaign)
-select 
-	utm_source, 
-	round(sum(total_cost)*1.0/sum(visitors_count), 2) as cpu_source 
-from final_query 
-group by 1 
-having round(sum(total_cost)*1.0/sum(visitors_count), 2) is not null
 
 --корреляция Пирсона между затратами и выручкой
 select 
@@ -81,5 +68,17 @@ select
 	round(cast(coalesce(corr(total_cost, revenue), 0) as numeric), 3) as correlation
 from final_query
 group by 1
+
+
+--затраты на рекламу
+select 
+	visit_date,
+	utm_source,
+	sum(total_cost)
+from final_query
+where total_cost <> 0
+group by 1, 2
+order by 1
+
 
  	
